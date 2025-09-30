@@ -1,70 +1,111 @@
 # SystemGuardian
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)   
-**Author**: Tushar Santosh Patil   
-**Email**: tushar.patil.5202@gmail.com
 
-The name "SystemGuardian" conveys a sense of protection and vigilance over the system. SystemGuardian is a user-friendly system maintenance script that automates essential tasks to keep your Linux-based system up-to-date, optimized, and secure. It implies that the script serves as a guardian, ensuring the system's health and security through updates, cleanup, and other processes. 
+SystemGuardian is a production-ready system maintenance assistant for Linux servers. It automates
+routine update, cleanup, and health-check tasks while remaining auditable, configurable, and safe for
+critical environments. The tool is implemented in **Python 3** to take advantage of structured
+logging, rich configuration handling, and cross-distribution abstractions that are difficult to
+maintain in shell scripts.
 
+## Key Capabilities
 
-## Features
+- **Modular execution** – Choose between update, cleanup, health-check, or full-run workflows from
+  the command line. Each task is implemented as an independent function for easy extension.
+- **Centralised configuration** – Tune behaviour through `systemguardian.conf`, including feature
+  toggles, package-manager preferences, logging destinations, and service/process lists.
+- **Cross-distro intelligence** – Automatically detects the host distribution and selects the
+  appropriate package manager (`apt`, `dnf`, `yum`, `pacman`, or `zypper`).
+- **Robust logging** – Structured log output with timestamps, severity levels, and built-in log
+  rotation keeps historical records manageable.
+- **Strict error handling** – Critical failures stop execution immediately with clear log messages
+  while non-critical warnings are surfaced in the final report.
+- **Dry-run mode** – Preview every command before it runs, making audits and change windows safer.
+- **Comprehensive health checks** – Optional checks include S.M.A.R.T. disk health via
+  `smartmontools`, systemd service status, and firewall activity (`ufw` or `firewalld`).
+- **Advanced cleanup** – Handles package cache purges, systemd journal rotation, Docker resource
+  pruning, and optional kernel cleanup routines.
+- **Timeshift awareness** – When enabled, warns if a recent Timeshift snapshot is unavailable before
+  destructive operations.
 
-- **Automatic Package Update**: SystemGuardian automatically updates the package lists, ensuring your system has access to the latest software updates and security patches.
-- **Full System Upgrade**: It performs a full system upgrade, applying the latest updates to your operating system, installed software, and libraries.
-- **Package Cleanup**: SystemGuardian removes unused packages from your system, freeing up valuable disk space and enhancing system performance.
-- **Clear Package Cache**: It cleans the package cache, reclaiming disk space occupied by downloaded package files.
-- **Unnecessary Data Removal**: SystemGuardian clears unnecessary data, such as temporary files, cache, and logs, to optimize your system's storage and improve efficiency.
-- **Intelligent Process Killing**: The script identifies and terminates specific processes that could interfere with the update process, ensuring smooth execution.
-- **System Restart Requirement**: SystemGuardian checks if a system restart is required after performing upgrades, alerting you to take necessary action.
-- **Disk Space Usage Analysis**: It provides a detailed analysis of your system's disk space usage, helping you identify space-consuming files and directories.
-- **Colorful and Informative Output**: SystemGuardian presents its progress and results in a visually appealing format, making it easy to understand the actions taken.
+## Requirements
 
-## Prerequisites
-
-- **Linux-based Operating System**: SystemGuardian is designed to work with Linux-based systems such as Ubuntu, Debian, CentOS, and more.
-- **Bash Shell**: Ensure that your system has the Bash shell installed, as it is required for executing the script.
-- **VMware Workstation** (Optional): If you're running the script within a virtual machine managed by VMware Workstation, make sure you have VMware Workstation installed and properly configured.
-- **NVIDIA GPU with Appropriate Drivers** (Optional): If your system has an NVIDIA GPU and you want to utilize it for GPU-intensive tasks, ensure you have the appropriate NVIDIA drivers installed.
+- Linux distribution with Python 3.8 or newer.
+- Root privileges (`sudo` or direct root execution) – SystemGuardian will exit if not run as root.
+- Package manager supported by the host distribution (`apt`, `dnf`, `yum`, `pacman`, or `zypper`).
+- Optional tools depending on enabled features:
+  - `smartctl` from **smartmontools** for disk health checks.
+  - `systemctl` for service status validation.
+  - `ufw` or `firewall-cmd` for firewall status detection.
+  - `docker` for container cleanup tasks.
+  - `timeshift` if Timeshift snapshot enforcement is enabled.
 
 ## Installation
 
-1. **Download the Script**: Clone the repository or download the script directly from [here](systemguardian.sh).
+1. Clone the repository and change into the project directory:
+   ```bash
+   git clone https://github.com/your-org/SystemGuardian.git
+   cd SystemGuardian
+   ```
+2. Ensure the script is executable:
+   ```bash
+   chmod +x systemguardian.py
+   ```
+3. Copy the sample configuration and adjust to match your environment:
+   ```bash
+   sudo mkdir -p /etc/systemguardian
+   sudo cp systemguardian.conf /etc/systemguardian/systemguardian.conf
+   sudo ${EDITOR:-vi} /etc/systemguardian/systemguardian.conf
+   ```
 
-2. **Make the Script Executable**: Open a terminal and navigate to the directory where you downloaded the script. Run the following command to make it executable:
-   ```shell
-   chmod +x systemguardian.sh
+## Configuration
 
+SystemGuardian reads configuration values from the first available file in the following order:
+
+1. Path provided via `--config /path/to/file`
+2. `./systemguardian.conf` (current directory)
+3. `/etc/systemguardian/systemguardian.conf`
+4. `/etc/systemguardian.conf`
+
+Every option is documented in the sample `systemguardian.conf`. Key settings include:
+
+- **Logging** – `log_file`, `log_max_bytes`, `log_backup_count`, `log_level`
+- **Feature toggles** – enable or disable updates, cleanup routines, health checks, Docker prune,
+  kernel cleanup, and Timeshift snapshot enforcement.
+- **Cleanup controls** – journal retention, Docker prune flags, package cache behaviour.
+- **Health checks** – firewall tool preference, critical service list, process termination list.
+- **Package manager overrides** – allow custom upgrade commands per manager.
 
 ## Usage
 
-- **Run the Script**: Execute the script by running the following command:
-  ```shell
-    ./systemguardian.sh
+SystemGuardian must be executed with root privileges. The tool provides dedicated modes for common
+maintenance scenarios:
 
-- **Follow the On-Screen Instructions**: The script will guide you through the process and display its progress. Sit back and let SystemGuardian do its job.
+```bash
+sudo ./systemguardian.py --update        # Run only package updates
+sudo ./systemguardian.py --clean         # Run cleanup tasks (cache, logs, optional Docker)
+sudo ./systemguardian.py --health-check  # Run health checks only
+sudo ./systemguardian.py --full-run      # Run all enabled tasks (default if no flag provided)
+sudo ./systemguardian.py --dry-run --full-run  # Preview actions without executing commands
+sudo ./systemguardian.py --config /path/to/custom.conf --clean
+```
 
-- **Review the Results**: After the script completes, it will provide a summary of the actions performed. Take a moment to review the results and ensure everything executed successfully.
+Use `--help` to view the complete CLI reference. When `--dry-run` is supplied, commands are logged
+and printed but not executed, making it easy to test configuration changes.
 
-## Contributing
+## Logging and Reporting
 
-Contributions are welcome! If you have ideas, suggestions, or improvements, please feel free to open an issue or submit a pull request. To contribute to the project, follow these steps:
+- **Log file** – All actions, warnings, and errors are written to the configured log file using a
+  rotating handler. If the configured destination is not writable, SystemGuardian falls back to
+  `./systemguardian.log` and notifies the operator.
+- **Summary report** – Upon completion (or upon encountering a critical error) a concise summary is
+  printed to STDOUT and logged. The report includes the hostname, timestamp, actions performed,
+  metrics (such as reclaimed disk space), and any warnings or errors observed.
 
-1. Fork the repository.
-2. Create a new branch: `git checkout -b feature/your-feature-name`.
-3. Make your modifications and ensure the code is properly formatted.
-4. Commit your changes: `git commit -m 'Add some feature'`.
-5. Push to the branch: `git push origin feature/your-feature-name`.
-6. Open a pull request, describing your changes and the motivation behind them.
+## Development
 
-Please adhere to the [Contributing Guidelines](CONTRIBUTING.md) when making contributions.
+Contributions are welcome. Please lint new Python code with `black` and `flake8`, and include
+updates to the sample configuration or documentation when behaviour changes. Submit pull requests
+with detailed descriptions of your modifications.
 
 ## License
 
-SystemGuardian is licensed under the [MIT License](LICENSE). You are free to use, modify, and distribute the script in accordance with the terms of this license.
-
-## Disclaimer
-
-Please note that the SystemGuardian script is provided as-is, without any warranty or guarantee. Use it at your own risk. Always review the code and understand the actions it performs before running it on your system.
-
-## Documentation
-
-For detailed information on how to use and customize the script, refer to the [Wiki](https://github.com/your-repo/wiki).
+SystemGuardian is distributed under the [MIT License](LICENSE). See the license file for details.
